@@ -95,8 +95,8 @@ namespace LMS.Controllers
                 //will have to come back to this -- using date type for these 2
                 start = cl.StartTime.ToString(),
                 end = cl.EndTime.ToString(),
-                fname = cl.Professor.fName,
-                lname = cl.Professor.lName
+                //fname = cl.TaughtBy.fName,
+                //lname = cl.TaughtBy.lName
             }).ToList();
             return Json(classOfferings.ToArray());
         }
@@ -115,11 +115,13 @@ namespace LMS.Controllers
         /// <returns>The assignment contents</returns>
         public IActionResult GetAssignmentContents(string subject, int num, string season, int year, string category, string asgname)
         {
-            var assignmentContents = db.Assignments.Where(a => a.Category.Class.Course.Department ==
-            subject && a.Category.Class.Course.Number == num && a.Category.Class.Season == season &&
-            a.Category.Class.Year == year && a.Category.Name == category && a.Name == asgname)
-            .Select(a => a.Contents).FirstOrDefault();
-            return Content(assignmentContents ?? "");
+            // var assignmentContents = db.Assignments.Where(a => a.Category.Class.Course.Department ==
+            // subject && a.Category.Class.Course.Number == num && a.Category.Class.Season == season &&
+            // a.Category.Class.Year == year && a.Category.Name == category && a.Name == asgname)
+            // .Select(a => a.Contents).FirstOrDefault();
+
+            //return Content(assignmentContents ?? "");
+            return Content("");
         }
 
 
@@ -139,12 +141,13 @@ namespace LMS.Controllers
         /// <returns>The submission text</returns>
         public IActionResult GetSubmissionText(string subject, int num, string season, int year, string category, string asgname, string uid)
         {
-            var submissionText = db.Submissions.Where(s => s.Assignment.Category.Class.Course.Department ==
-            subject && s.Assignment.Category.Class.Course.Number == num && s.Assignment.Category.Class.Season == season &&
-            s.Assignment.Category.Class.Year == year && s.Assignment.Category.Name == category && s.Assignment.Name == asgname &&
-            s.StudentId == uid).Select(s => s.Contents).FirstOrDefault();
+            // var submissionText = db.Submissions.Where(s => s.Assignment.Category.Class.Course.Department ==
+            // subject && s.Assignment.Category.Class.Course.Number == num && s.Assignment.Category.Class.Season == season &&
+            // s.Assignment.Category.Class.Year == year && s.Assignment.Category.Name == category && s.Assignment.Name == asgname &&
+            // s.StudentId == uid).Select(s => s.Contents).FirstOrDefault();
 
-            return Content(submissionText ?? "");
+            //return Content(submissionText ?? "");
+            return Content("");
         }
 
 
@@ -185,7 +188,7 @@ namespace LMS.Controllers
                     fname = student.FName,
                     lname = student.LName,
                     uid = student.UId,
-                    department = student.Department
+                    department = student.Major
                 };
                 return Json(userObj);
             }
@@ -195,7 +198,7 @@ namespace LMS.Controllers
                     fname = professor.FName,
                     lname = professor.LName,
                     uid = professor.UId,
-                    department = professor.Department
+                    department = professor.WorksIn
                 };
                 return Json(userObj);
             }
