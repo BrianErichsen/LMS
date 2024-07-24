@@ -38,8 +38,6 @@ namespace LMS.Controllers
             return Json(departments.ToArray());
         }
 
-
-
         /// <summary>
         /// Returns a JSON array representing the course catalog.
         /// Each object in the array should have the following fields:
@@ -92,11 +90,10 @@ namespace LMS.Controllers
                 season = cl.Season,
                 year = cl.Year,
                 location = cl.Location,
-                //will have to come back to this -- using date type for these 2
                 start = cl.StartTime.ToString(),
                 end = cl.EndTime.ToString(),
-                //fname = cl.TaughtBy.fName,
-                //lname = cl.TaughtBy.lName
+                fname = cl.TaughtByNavigation.FName,
+                lname = cl.TaughtByNavigation.LName
             }).ToList();
             return Json(classOfferings.ToArray());
         }
@@ -115,13 +112,12 @@ namespace LMS.Controllers
         /// <returns>The assignment contents</returns>
         public IActionResult GetAssignmentContents(string subject, int num, string season, int year, string category, string asgname)
         {
-            // var assignmentContents = db.Assignments.Where(a => a.Category.Class.Course.Department ==
-            // subject && a.Category.Class.Course.Number == num && a.Category.Class.Season == season &&
-            // a.Category.Class.Year == year && a.Category.Name == category && a.Name == asgname)
-            // .Select(a => a.Contents).FirstOrDefault();
+            var assignmentContents = db.Assignments.Where(a => a.CategoryNavigation.InClassNavigation.ListingNavigation.Department
+            == subject && a.CategoryNavigation.InClassNavigation.ListingNavigation.Number == num && a.CategoryNavigation.InClassNavigation.Season
+            == season && a.CategoryNavigation.InClassNavigation.Year == year && a.CategoryNavigation.Name == category && a.Name
+            == asgname).Select(a => a.Contents).FirstOrDefault();
 
-            //return Content(assignmentContents ?? "");
-            return Content("");
+            return Content(assignmentContents ?? "");
         }
 
 
@@ -141,13 +137,12 @@ namespace LMS.Controllers
         /// <returns>The submission text</returns>
         public IActionResult GetSubmissionText(string subject, int num, string season, int year, string category, string asgname, string uid)
         {
-            // var submissionText = db.Submissions.Where(s => s.Assignment.Category.Class.Course.Department ==
-            // subject && s.Assignment.Category.Class.Course.Number == num && s.Assignment.Category.Class.Season == season &&
-            // s.Assignment.Category.Class.Year == year && s.Assignment.Category.Name == category && s.Assignment.Name == asgname &&
-            // s.StudentId == uid).Select(s => s.Contents).FirstOrDefault();
+            var submissionText = db.Submissions.Where(s => s.AssignmentNavigation.CategoryNavigation.InClassNavigation.ListingNavigation.Department ==
+            subject && s.AssignmentNavigation.CategoryNavigation.InClassNavigation.ListingNavigation.Number == num && s.AssignmentNavigation.CategoryNavigation.InClassNavigation.Season == season &&
+            s.AssignmentNavigation.CategoryNavigation.InClassNavigation.Year == year && s.AssignmentNavigation.CategoryNavigation.Name == category && s.AssignmentNavigation.Name == asgname &&
+            s.Student == uid).Select(s => s.SubmissionContents).FirstOrDefault();
 
-            //return Content(submissionText ?? "");
-            return Content("");
+            return Content(submissionText ?? "");
         }
 
 
@@ -159,12 +154,12 @@ namespace LMS.Controllers
         /// "uid": the user's uid
         /// "department": (professors and students only) the name (such as "Computer Science") of the department for the user. 
         ///               If the user is a Professor, this is the department they work in.
-        ///               If the user is a Student, this is the department they major in.    
+        ///               If the user is a Student, this is the department they major in.
         ///               If the user is an Administrator, this field is not present in the returned JSON
         /// </summary>
         /// <param name="uid">The ID of the user</param>
         /// <returns>
-        /// The user JSON object 
+        /// The user JSON object
         /// or an object containing {success: false} if the user doesn't exist
         /// </returns>
         public IActionResult GetUser(string uid)
