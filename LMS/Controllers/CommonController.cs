@@ -83,10 +83,10 @@ namespace LMS.Controllers
         /// <param name="number">The course number, as in 5530</param>
         /// <returns>The JSON array</returns>
         public IActionResult GetClassOfferings(string subject, int number)
-        {
-            var classOfferings = db.Courses.Where(c => c.Department == subject &&
+        {   //selects specific classes offerings given input
+            var classOffer = db.Courses.Where(c => c.Department == subject &&
             c.Number == number).SelectMany(c => c.Classes).Select(cl => new
-            {
+            {   //sets proper fields
                 season = cl.Season,
                 year = cl.Year,
                 location = cl.Location,
@@ -95,7 +95,7 @@ namespace LMS.Controllers
                 fname = cl.TaughtByNavigation.FName,
                 lname = cl.TaughtByNavigation.LName
             }).ToList();
-            return Json(classOfferings.ToArray());
+            return Json(classOffer.ToArray());
         }
 
         /// <summary>
@@ -116,7 +116,11 @@ namespace LMS.Controllers
             == subject && a.CategoryNavigation.InClassNavigation.ListingNavigation.Number == num && a.CategoryNavigation.InClassNavigation.Season
             == season && a.CategoryNavigation.InClassNavigation.Year == year && a.CategoryNavigation.Name == category && a.Name
             == asgname).Select(a => a.Contents).FirstOrDefault();
-
+            //since we return plain text then we return the assignment contents if it exists in the db
+            // or a empty string if not in the database
+            if (assignmentContents == null) {
+                Console.WriteLine("No match for given Assignment Contents!");
+            }
             return Content(assignmentContents ?? "");
         }
 
@@ -136,15 +140,19 @@ namespace LMS.Controllers
         /// <param name="uid">The uid of the student who submitted it</param>
         /// <returns>The submission text</returns>
         public IActionResult GetSubmissionText(string subject, int num, string season, int year, string category, string asgname, string uid)
-        {
+        {   //creates specific selection from given inputs to search the db
             var submissionText = db.Submissions.Where(s => s.AssignmentNavigation.CategoryNavigation.InClassNavigation.ListingNavigation.Department ==
             subject && s.AssignmentNavigation.CategoryNavigation.InClassNavigation.ListingNavigation.Number == num && s.AssignmentNavigation.CategoryNavigation.InClassNavigation.Season == season &&
             s.AssignmentNavigation.CategoryNavigation.InClassNavigation.Year == year && s.AssignmentNavigation.CategoryNavigation.Name == category && s.AssignmentNavigation.Name == asgname &&
             s.Student == uid).Select(s => s.SubmissionContents).FirstOrDefault();
 
+            //if no match then communicates the mismatch
+            if (submissionText == null) {
+                Console.WriteLine("No match for given submission!");
+            }
+            //returns the selected submission if found in db else a empty string
             return Content(submissionText ?? "");
         }
-
 
         /// <summary>
         /// Gets information about a user as a single JSON object.
@@ -163,11 +171,12 @@ namespace LMS.Controllers
         /// or an object containing {success: false} if the user doesn't exist
         /// </returns>
         public IActionResult GetUser(string uid)
-        {
+        {   //searches for specific user in db given uid
             var admin = db.Administrators.FirstOrDefault(a => a.UId == uid);
             var student = db.Students.FirstOrDefault(s => s.UId == uid);
             var professor = db.Professors.FirstOrDefault(p => p.UId == uid);
 
+            // role is not null then sets proper fields
             if (admin != null) {
                 var userObj = new
                 {
@@ -177,6 +186,7 @@ namespace LMS.Controllers
                 };
                 return Json(userObj);
             }
+            // role is not null then sets proper fields
             if (student != null) {
                 var userObj = new
                 {
@@ -187,6 +197,7 @@ namespace LMS.Controllers
                 };
                 return Json(userObj);
             }
+            // role is not null then sets proper fields
             if (professor != null) {
                 var userObj = new
                 {
@@ -199,7 +210,6 @@ namespace LMS.Controllers
             }
             return Json(new { success = false });
         }
-        /*******End code to modify********/
     }
 }
 
