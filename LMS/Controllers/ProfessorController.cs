@@ -125,6 +125,7 @@ namespace LMS_CustomIdentity.Controllers
                 dob = e.StudentNavigation.Dob,
                 grade = e.Grade
             };
+
             return Json(studentsInclass);
         }
 
@@ -155,6 +156,7 @@ namespace LMS_CustomIdentity.Controllers
                 aname = a.Name,
                 cname = a.CategoryNavigation.Name,
                 due = a.Due,
+                //using count to get the number of submissions to the assignment
                 submissions = a.Submissions.Count()
             };
             return Json(assignmentInCategory);
@@ -227,8 +229,10 @@ namespace LMS_CustomIdentity.Controllers
             var new_category = new AssignmentCategory
             {
                 Name = category,
-
+                Weight = (ushort) catweight,
+                InClass = classObject.ClassId
             };
+            
             return Json(new { success = false });
         }
 
@@ -247,8 +251,8 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>A JSON object containing success = true/false</returns>
         public IActionResult CreateAssignment(string subject, int num, string season, int year, string category, string asgname, int asgpoints, DateTime asgdue, string asgcontents)
         {   //still needed to be complete
-            var course = db.Courses.FirstOrDefault(c => c.Department == subject &&
-            c.Number == num);
+            // var course = db.Courses.FirstOrDefault(c => c.Department == subject &&
+            // c.Number == num);
             return Json(new { success = false });
         }
 
