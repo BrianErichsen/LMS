@@ -192,11 +192,62 @@ namespace LMS.Areas.Identity.Pages.Account
         /// <param name="departmentAbbrev">The department abbreviation that the user belongs to (ignore for Admins) </param>
         /// <param name="role">The user's role: one of "Administrator", "Professor", "Student"</param>
         /// <returns>The uID of the new user</returns>
-        string CreateNewUser( string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role )
+        public string CreateNewUser(string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role)
         {
-            return "unknown";
-        }
+            // Generate a unique uID
+            string uID;
+            do
+            {
+                uID = "u" + new Random().Next(1000000, 9999999).ToString("D7");
+            } while (db.Administrators.Any(a => a.UId == uID) || db.Professors.Any(p => p.UId == uID) || db.Students.Any(s => s.UId == uID));
 
-        /*******End code to modify********/
+            // Create and add the new user record to the appropriate table based on the role
+            switch (role)
+            {
+                case "Administrator":
+                    var admin = new Administrator
+                    {
+                        UId = uID,
+                        FName = firstName,
+                        LName = lastName,
+                        Dob = DateOnly.FromDateTime(DOB)
+                    };
+                    db.Administrators.Add(admin);
+                    break;
+
+                case "Professor":
+                    var professor = new Professor
+                    {
+                        UId = uID,
+                        FName = firstName,
+                        LName = lastName,
+                        Dob = DateOnly.FromDateTime(DOB),
+                        WorksIn = departmentAbbrev
+                    };
+                    db.Professors.Add(professor);
+                    break;
+
+                case "Student":
+                    var student = new Student
+                    {
+                        UId = uID,
+                        FName = firstName,
+                        LName = lastName,
+                        Dob = DateOnly.FromDateTime(DOB),
+                        Major = departmentAbbrev
+                    };
+                    db.Students.Add(student);
+                    break;
+
+                default:
+                    throw new ArgumentException("Invalid role specified");
+            }
+
+            // Save the changes to the database
+            db.SaveChanges();
+
+            // Return the uID of the new user
+            return uID;
+        }
     }
 }

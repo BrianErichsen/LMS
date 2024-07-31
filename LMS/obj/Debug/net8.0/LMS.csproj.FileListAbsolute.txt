@@ -238,3 +238,4 @@
 /Users/brianerichsenfagundes/Downloads/LMSHandout/LMS/obj/Debug/net8.0/LMS.pdb
 /Users/brianerichsenfagundes/Downloads/LMSHandout/LMS/obj/Debug/net8.0/LMS.genruntimeconfig.cache
 /Users/brianerichsenfagundes/Downloads/LMSHandout/LMS/obj/Debug/net8.0/ref/LMS.dll
+/Users/brianerichsenfagundes/Downloads/LMSHandout/LMS/obj/Debug/net8.0/LMS.sourcelink.json
