@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text.Json;
 using System.Threading.Tasks;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -202,38 +204,37 @@ namespace LMS_CustomIdentity.Controllers
         /// <param name="category">The new category name</param>
         /// <param name="catweight">The new category weight</param>
         /// <returns>A JSON object containing {success = true/false} </returns>
-        public IActionResult CreateAssignmentCategory(string subject, int num, string season, int year, string category, int catweight)
+        public IActionResult CreateAssignmentCategory(string subject, int num, string season, int year, string category, uint catweight)
         {
-            var course = db.Courses.FirstOrDefault(c => c.Department == subject && c.Number == num);
-            if (course == null) {
-                return Json(new { success = false});
+            // Find the class based on the provided parameters
+            var classQuery = from c in db.Classes
+                            join co in db.Courses on c.Listing equals co.CatalogId
+                            where co.Department == subject && co.Number == num && c.Season == season && c.Year == year
+                            select c;
+            var cls = classQuery.FirstOrDefault();
+            // If the class doesn't exist, return success = false
+            if (cls == null)
+            {
+                return Json(new { success = false });
             }
-
-            var classObject = db.Classes.FirstOrDefault(c =>
-            c.Listing == course.CatalogId && c.Season == season && c.Year == year);
-
-            if (classObject == null) {
-                return Json(new {sucess = false});
+            // Check if the category already exists for this class
+            var categoryQuery = from ac in db.AssignmentCategories
+                                where ac.InClass == cls.ClassId && ac.Name == category
+                                select ac;
+            if (categoryQuery.Any())
+            {
+                return Json(new { success = false });
             }
-
-            var is_real_category = db.AssignmentCategories.FirstOrDefault(ac =>
-            ac.InClassNavigation.Listing == course.CatalogId &&
-            ac.InClassNavigation.Season == season &&
-            ac.InClassNavigation.Year == year &&
-            ac.Name == category);
-
-            if (is_real_category != null) {
-                return Json(new {success = false});
-            }
-
-            var new_category = new AssignmentCategory
+            // Create the new assignment category
+            var newCategory = new AssignmentCategory
             {
                 Name = category,
-                Weight = (ushort) catweight,
-                InClass = classObject.ClassId
+                Weight = catweight,
+                InClass = cls.ClassId
             };
-            
-            return Json(new { success = false });
+            db.AssignmentCategories.Add(newCategory);
+            db.SaveChanges();
+            return Json(new { success = true });
         }
 
         /// <summary>
@@ -287,17 +288,10 @@ namespace LMS_CustomIdentity.Controllers
             };
 
             db.Assignments.Add(newAssignment);
+            db.SaveChanges();
+            UpdateAllStudentGrades(classObj.ClassId);
 
-            // Save the new assignment to the database
-            try
-            {
-                db.SaveChanges();
-                return Json(new { success = true });
-            }
-            catch (Exception)
-            {
-                return Json(new { success = false });
-            }
+            return Json(new { success = true });
         }
 
 
@@ -443,19 +437,117 @@ namespace LMS_CustomIdentity.Controllers
             submissionObj.Score = (uint)score;
 
             // Save the changes to the database
-            try
-            {
+            db.SaveChanges();
+            UpdateGrade(uid, classObj.ClassId);
+            return Json(new {success = true});
+        }
+        //helper method to upgrade the enrolled table grade field based on students
+        //assignment submission
+        private void UpdateGrade(string studentId, uint classId) {
+            var enrolled = db.Enrolleds.FirstOrDefault(e =>
+            e.Class == classId && e.Student == studentId);
+
+            if (enrolled != null) {
+                var classObject = enrolled.ClassNavigation;
+
+                var assignmentCategories = db.AssignmentCategories.Where(ac => ac.InClass == classObject.ClassId).ToList();
+
+                double cumulative = 0.0;
+                double totalPoints = 0.0;
+
+                foreach (var category in assignmentCategories) {
+                    var assignments = db.Assignments.Where(a => a.Category == category.CategoryId).ToList();
+                    bool hasAssignment = assignments.Count() != 0;
+
+                    double categoryTotalPoints = 0.0;
+                    double categoryMaxPoints = 0.0;
+
+                    foreach (var assignment in assignments) {
+                        double assignmentMaxPoints = assignment.MaxPoints;
+                        categoryMaxPoints += assignmentMaxPoints;
+
+                        var submission = db.Submissions.SingleOrDefault(s => s.Assignment == assignment.AssignmentId &&
+                        s.Student == studentId);
+                        
+                        if (submission != null) {
+                            double assignmentTotalPoints = (double) submission.Score;
+                            categoryTotalPoints += assignmentTotalPoints;
+                        }
+                    }
+
+                    if (hasAssignment) {
+                        double categoryPercentage = categoryMaxPoints > 0 ? categoryTotalPoints / categoryMaxPoints : 0.0;
+                        double scaledCategory = categoryPercentage * category.Weight;
+
+                        cumulative += scaledCategory;
+                        totalPoints += category.Weight;
+                    }
+                }
+                string grade = ToGradePoint(cumulative, totalPoints);
+                enrolled.Grade = grade;
                 db.SaveChanges();
-                return Json(new { success = true });
             }
-            catch (Exception)
+        }//end of update grade method
+
+        public static string ToGradePoint(double cumulative, double totalPoints) {
+            double gradePoint = cumulative / totalPoints * 100;
+
+            if (gradePoint >= 93)
             {
-                return Json(new { success = false });
+                return "A";
+            }
+            else if (gradePoint >= 90)
+            {
+                return "A-";
+            }
+            else if (gradePoint >= 87)
+            {
+                return "B+";
+            }
+            else if (gradePoint >= 83)
+            {
+                return "B";
+            }
+            else if (gradePoint >= 80)
+            {
+                return "B-";
+            }
+            else if (gradePoint >= 77)
+            {
+                return "C+";
+            }
+            else if (gradePoint >= 73)
+            {
+                return "C";
+            }
+            else if (gradePoint >= 70)
+            {
+                return "C-";
+            }
+            else if (gradePoint >= 67)
+            {
+                return "D+";
+            }
+            else if (gradePoint >= 63)
+            {
+                return "D";
+            }
+            else if (gradePoint >= 60)
+            {
+                return "D-";
+            }
+            else
+            {
+                return "E";
             }
         }
 
-
-
+        public void UpdateAllStudentGrades(uint classId) {
+            var enrolleds = db.Enrolleds.Where(e => e.Class == classId).ToList();
+            foreach (var enrolled in enrolleds) {
+                UpdateGrade(enrolled.Student, classId);
+            }
+        }
         /// <summary>
         /// Returns a JSON array of the classes taught by the specified professor
         /// Each object in the array should have the following fields:
